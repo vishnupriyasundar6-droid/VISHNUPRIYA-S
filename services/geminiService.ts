@@ -1,11 +1,9 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-import { GameTheme } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+import { GameTheme } from "../types.ts";
 
 export const getGameCommentary = async (score: number, isGameOver: boolean, currentScale: number): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const scaleDesc = currentScale > 1.2 ? "The bird is getting huge and hard to control!" : "The bird is tiny but mighty.";
     const prompt = isGameOver 
       ? `The player just died in a Flappy Bird game with a score of ${score}. The bird was scaled at ${currentScale.toFixed(1)}x size. Give a short, funny, 1-sentence roast. Be concise.`
@@ -28,9 +26,10 @@ export const getGameCommentary = async (score: number, isGameOver: boolean, curr
 
 export const getDynamicTheme = async (): Promise<GameTheme> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: "Generate a creative visual theme for a flappy bird game. Return a JSON object with: name, skyColor (Tailwind bg class), pipeColor (Tailwind bg class), birdEmoji, groundColor (Tailwind bg class), and accentColor (Tailwind text class).",
+      contents: "Generate a creative visual theme for a flappy bird game. Return a JSON object with: name, skyColor (Tailwind bg class), pipeColor (Tailwind bg class), birdEmoji, groundColor (Tailwind bg class), and accentColor (Tailwind text class). Themes should be like 'Neon Cyberpunk', 'Pastel Dreams', 'Deep Sea', etc.",
       config: {
         responseMimeType: "application/json",
         responseSchema: {

@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { GameState } from '../types';
-import { GAME_WIDTH, GAME_HEIGHT, BIRD_SIZE, PIPE_WIDTH, PIPE_GAP } from '../constants';
+import { GameState } from '../types.ts';
+import { GAME_WIDTH, GAME_HEIGHT, BIRD_SIZE, PIPE_WIDTH, PIPE_GAP } from '../constants.ts';
 
 interface GameViewProps {
   state: GameState;
@@ -17,7 +16,7 @@ const GameView: React.FC<GameViewProps> = ({ state, onJump }) => {
       style={{ width: GAME_WIDTH, height: GAME_HEIGHT }}
       onClick={onJump}
     >
-      {/* Background Decor (Parallax-ish clouds or stars) */}
+      {/* Background Decor */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="absolute top-20 left-10 text-6xl">☁️</div>
         <div className="absolute top-40 right-20 text-4xl">☁️</div>
@@ -50,7 +49,7 @@ const GameView: React.FC<GameViewProps> = ({ state, onJump }) => {
           transformOrigin: 'center center'
         }}
       >
-        <span className="text-5xl drop-shadow-md drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
+        <span className="text-5xl drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
           {theme.birdEmoji}
         </span>
       </div>
@@ -58,7 +57,6 @@ const GameView: React.FC<GameViewProps> = ({ state, onJump }) => {
       {/* Pipes */}
       {pipes.map((pipe) => (
         <React.Fragment key={pipe.id}>
-          {/* Top Pipe */}
           <div 
             className={`absolute border-x-4 border-black/20 ${theme.pipeColor} transition-colors duration-500 shadow-inner`}
             style={{ 
@@ -71,7 +69,6 @@ const GameView: React.FC<GameViewProps> = ({ state, onJump }) => {
           >
             <div className="absolute bottom-0 left-[-4px] right-[-4px] h-6 bg-inherit border-4 border-black/20 rounded-md" />
           </div>
-          {/* Bottom Pipe */}
           <div 
             className={`absolute border-x-4 border-black/20 ${theme.pipeColor} transition-colors duration-500 shadow-inner`}
             style={{ 
@@ -119,7 +116,7 @@ const GameView: React.FC<GameViewProps> = ({ state, onJump }) => {
             className="bg-white text-black font-black px-10 py-5 rounded-full shadow-[0_10px_0_0_#d1d5db] active:shadow-none active:translate-y-[10px] transition-all text-sm uppercase tracking-[0.2em]"
             onClick={(e) => { e.stopPropagation(); location.reload(); }}
           >
-            Revolve
+            Restart
           </button>
         </div>
       )}

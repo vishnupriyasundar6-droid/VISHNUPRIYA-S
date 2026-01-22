@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import GameView from './components/GameView';
-import { GameState, DEFAULT_THEME, PipeData } from './types';
+import GameView from './components/GameView.tsx';
+import { GameState, DEFAULT_THEME, PipeData } from './types.ts';
 import { 
   GAME_HEIGHT, 
   BIRD_SIZE, 
@@ -11,8 +10,8 @@ import {
   PIPE_GAP, 
   PIPE_SPEED, 
   GAME_WIDTH 
-} from './constants';
-import { getGameCommentary, getDynamicTheme } from './services/geminiService';
+} from './constants.ts';
+import { getGameCommentary, getDynamicTheme } from './services/geminiService.ts';
 
 const App: React.FC = () => {
   const [state, setState] = useState<GameState>({
@@ -24,11 +23,11 @@ const App: React.FC = () => {
     isGameOver: false,
     isGameStarted: false,
     theme: DEFAULT_THEME,
-    aiMessage: "Ready to grow & flap?"
+    aiMessage: "Connecting to Gemini..."
   });
 
   const stateRef = useRef(state);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number>(null);
   const lastPipeSpawnTime = useRef<number>(0);
 
   // Sync ref with state for the animation loop
@@ -39,16 +38,21 @@ const App: React.FC = () => {
   // Initial Theme Fetch
   useEffect(() => {
     const fetchInitialData = async () => {
-      const theme = await getDynamicTheme();
-      setState(prev => ({ ...prev, theme }));
+      try {
+        const theme = await getDynamicTheme();
+        setState(prev => ({ ...prev, theme, aiMessage: "Ready to grow & flap?" }));
+      } catch (e) {
+        console.error("Theme fetch failed", e);
+      }
     };
     fetchInitialData();
   }, []);
 
   const jump = useCallback(() => {
-    if (stateRef.current.isGameOver) return;
+    const s = stateRef.current;
+    if (s.isGameOver) return;
     
-    if (!stateRef.current.isGameStarted) {
+    if (!s.isGameStarted) {
       setState(prev => ({ ...prev, isGameStarted: true, aiMessage: "Let's go!" }));
       return;
     }
@@ -62,7 +66,7 @@ const App: React.FC = () => {
   const checkCollision = (birdY: number, birdScale: number, pipes: PipeData[]) => {
     const currentBirdSize = BIRD_SIZE * birdScale;
     
-    // Ground or Ceiling (Accounting for scale)
+    // Ground or Ceiling
     if (birdY < 0 || birdY + currentBirdSize > GAME_HEIGHT - 48) return true;
 
     // Pipes
@@ -87,10 +91,12 @@ const App: React.FC = () => {
 
   const update = useCallback((time: number) => {
     const s = stateRef.current;
-    if (!s.isGameStarted || s.isGameOver) {
-      requestRef.current = requestAnimationFrame(update);
-      return;
-    }
+    
+    // Always request the next frame even if paused/gameover to keep the loop alive 
+    // unless we want to stop it explicitly
+    requestRef.current = requestAnimationFrame(update);
+
+    if (!s.isGameStarted || s.isGameOver) return;
 
     let nextBirdY = s.birdY + s.birdVelocity;
     let nextVelocity = s.birdVelocity + GRAVITY;
@@ -98,10 +104,8 @@ const App: React.FC = () => {
     let nextScore = s.score;
     let nextScale = 1.0 + (nextScore * 0.05); // Grows 5% per point
 
-    // Cap the scale so it's not impossible immediately
     if (nextScale > 2.5) nextScale = 2.5;
 
-    // Spawn pipes (Faster interval as score increases?)
     const spawnInterval = Math.max(1200, 1800 - (nextScore * 20));
     if (time - lastPipeSpawnTime.current > spawnInterval) {
       const minPipeHeight = 50;
@@ -117,12 +121,10 @@ const App: React.FC = () => {
       lastPipeSpawnTime.current = time;
     }
 
-    // Move pipes
     nextPipes = nextPipes
-      .map(p => ({ ...p, x: p.x - (PIPE_SPEED + (nextScore * 0.05)) }))
+      .map(p => ({ ...p, x: p.x - (PIPE_SPEED + (nextScore * 0.02)) }))
       .filter(p => p.x + PIPE_WIDTH > 0);
 
-    // Update Score
     let scoredInThisFrame = false;
     nextPipes.forEach(p => {
       if (!p.passed && p.x + PIPE_WIDTH < 50) {
@@ -138,7 +140,6 @@ const App: React.FC = () => {
       });
     }
 
-    // Check collision
     if (checkCollision(nextBirdY, nextScale, nextPipes)) {
       setState(prev => ({ ...prev, isGameOver: true }));
       getGameCommentary(nextScore, true, nextScale).then(msg => {
@@ -155,8 +156,6 @@ const App: React.FC = () => {
       pipes: nextPipes,
       score: nextScore
     }));
-
-    requestRef.current = requestAnimationFrame(update);
   }, []);
 
   useEffect(() => {
@@ -166,7 +165,6 @@ const App: React.FC = () => {
     };
   }, [update]);
 
-  // Handle keyboard and global clicks
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
@@ -179,13 +177,13 @@ const App: React.FC = () => {
   }, [jump]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white p-4 font-sans">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4 font-sans">
       <div className="pixel-shadow border-8 border-neutral-800 rounded-xl overflow-hidden mb-6 shadow-2xl">
         <GameView state={state} onJump={jump} />
       </div>
       
       <div className="max-w-md w-full bg-neutral-900 border-2 border-neutral-800 p-6 rounded-lg text-center shadow-lg">
-        <h3 className="text-[10px] text-neutral-500 mb-1 tracking-[0.2em] uppercase font-bold">Dynamic Dimension</h3>
+        <h3 className="text-[10px] text-neutral-500 mb-1 tracking-[0.2em] uppercase font-bold">Current Theme</h3>
         <p className={`text-lg ${state.theme.accentColor} uppercase tracking-widest font-black italic`}>{state.theme.name}</p>
         
         <div className="mt-4 flex justify-center gap-3">
@@ -196,10 +194,10 @@ const App: React.FC = () => {
 
         <div className="mt-6 space-y-2">
           <p className="text-[9px] text-neutral-400 leading-relaxed uppercase">
-            Click to Jump. Bird grows with every point.
+            Click to Jump. Score points to grow in size.
           </p>
           <p className="text-[8px] text-neutral-600 italic">
-            Powered by Gemini 3 Flash. Built for Vercel.
+            Powered by Gemini AI Engine
           </p>
         </div>
       </div>
